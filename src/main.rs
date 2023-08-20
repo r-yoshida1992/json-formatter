@@ -5,37 +5,71 @@ use std::process;
 fn format_json(json_string: &str) -> String {
     let mut formatted = String::new();
     let mut indent = 0;
-    for ch in json_string.chars().filter(|c| !c.is_whitespace()) {
-        match ch {
-            '{' | '[' => {
-                formatted.push(ch);
-                formatted.push('\n');
-                indent += 4;
-                formatted.push_str(&" ".repeat(indent));
+    let mut in_string = false;
+    let mut was_backslash = false;
+    for ch in json_string.chars() {
+        if in_string {
+            formatted.push(ch);
+            if ch == '"' && !was_backslash {
+                in_string = false;
             }
-            '}' | ']' => {
-                formatted.push('\n');
-                indent -= 4;
-                formatted.push_str(&" ".repeat(indent));
+            was_backslash = ch == '\\' && !was_backslash;
+        } else {
+            if ch == '"' {
+                in_string = true;
                 formatted.push(ch);
+            } else if !ch.is_whitespace() {
+                match ch {
+                    '{' | '[' => {
+                        formatted.push(ch);
+                        formatted.push('\n');
+                        indent += 4;
+                        formatted.push_str(&" ".repeat(indent));
+                    }
+                    '}' | ']' => {
+                        formatted.push('\n');
+                        indent -= 4;
+                        formatted.push_str(&" ".repeat(indent));
+                        formatted.push(ch);
+                    }
+                    ',' => {
+                        formatted.push(ch);
+                        formatted.push('\n');
+                        formatted.push_str(&" ".repeat(indent));
+                    }
+                    ':' => {
+                        formatted.push(ch);
+                        formatted.push(' ');
+                    }
+                    _ => formatted.push(ch),
+                }
             }
-            ',' => {
-                formatted.push(ch);
-                formatted.push('\n');
-                formatted.push_str(&" ".repeat(indent));
-            }
-            ':' => {
-                formatted.push(ch);
-                formatted.push(' ');
-            }
-            _ => formatted.push(ch),
         }
     }
     formatted
 }
 
 fn minify_json(json_string: &str) -> String {
-    json_string.chars().filter(|c| !c.is_whitespace()).collect()
+    let mut result = String::new();
+    let mut in_string = false;
+    let mut was_backslash = false;
+    for ch in json_string.chars() {
+        if in_string {
+            result.push(ch);
+            if ch == '"' && !was_backslash {
+                in_string = false;
+            }
+            was_backslash = ch == '\\' && !was_backslash;
+        } else {
+            if ch == '"' {
+                in_string = true;
+                result.push(ch);
+            } else if !ch.is_whitespace() {
+                result.push(ch);
+            }
+        }
+    }
+    result
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
