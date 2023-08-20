@@ -2,47 +2,53 @@ use std::env;
 use std::fs;
 use std::process;
 
+fn process_character(ch: char, in_string: &mut bool, was_backslash: &mut bool) -> bool {
+    if *in_string {
+        if ch == '"' && !*was_backslash {
+            *in_string = false;
+        }
+        *was_backslash = ch == '\\' && !*was_backslash;
+        true
+    } else {
+        if ch == '"' {
+            *in_string = true;
+        }
+        false
+    }
+}
+
 fn format_json(json_string: &str) -> String {
     let mut formatted = String::new();
     let mut indent = 0;
     let mut in_string = false;
     let mut was_backslash = false;
     for ch in json_string.chars() {
-        if in_string {
+        if process_character(ch, &mut in_string, &mut was_backslash) || in_string {
             formatted.push(ch);
-            if ch == '"' && !was_backslash {
-                in_string = false;
-            }
-            was_backslash = ch == '\\' && !was_backslash;
-        } else {
-            if ch == '"' {
-                in_string = true;
-                formatted.push(ch);
-            } else if !ch.is_whitespace() {
-                match ch {
-                    '{' | '[' => {
-                        formatted.push(ch);
-                        formatted.push('\n');
-                        indent += 4;
-                        formatted.push_str(&" ".repeat(indent));
-                    }
-                    '}' | ']' => {
-                        formatted.push('\n');
-                        indent -= 4;
-                        formatted.push_str(&" ".repeat(indent));
-                        formatted.push(ch);
-                    }
-                    ',' => {
-                        formatted.push(ch);
-                        formatted.push('\n');
-                        formatted.push_str(&" ".repeat(indent));
-                    }
-                    ':' => {
-                        formatted.push(ch);
-                        formatted.push(' ');
-                    }
-                    _ => formatted.push(ch),
+        } else if !ch.is_whitespace() {
+            match ch {
+                '{' | '[' => {
+                    formatted.push(ch);
+                    formatted.push('\n');
+                    indent += 4;
+                    formatted.push_str(&" ".repeat(indent));
                 }
+                '}' | ']' => {
+                    formatted.push('\n');
+                    indent -= 4;
+                    formatted.push_str(&" ".repeat(indent));
+                    formatted.push(ch);
+                }
+                ',' => {
+                    formatted.push(ch);
+                    formatted.push('\n');
+                    formatted.push_str(&" ".repeat(indent));
+                }
+                ':' => {
+                    formatted.push(ch);
+                    formatted.push(' ');
+                }
+                _ => formatted.push(ch),
             }
         }
     }
@@ -54,19 +60,8 @@ fn minify_json(json_string: &str) -> String {
     let mut in_string = false;
     let mut was_backslash = false;
     for ch in json_string.chars() {
-        if in_string {
+        if process_character(ch, &mut in_string, &mut was_backslash) || !ch.is_whitespace() {
             result.push(ch);
-            if ch == '"' && !was_backslash {
-                in_string = false;
-            }
-            was_backslash = ch == '\\' && !was_backslash;
-        } else {
-            if ch == '"' {
-                in_string = true;
-                result.push(ch);
-            } else if !ch.is_whitespace() {
-                result.push(ch);
-            }
         }
     }
     result
